@@ -10,3 +10,4 @@ export class ChatRepository implements IChatRepository {
     await Chat.create({ userId, question, answer });
   }
 }
+//d
