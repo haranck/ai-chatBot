@@ -14,6 +14,7 @@ if (!MONGO_URI) {
 mongoose
   .connect(MONGO_URI)
   .then(() => {
+    console.log(MONGO_URI)
     console.log("✅ MongoDB connected");
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
