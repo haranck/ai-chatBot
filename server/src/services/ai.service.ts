@@ -10,12 +10,17 @@ export class AIService implements IAIService {
   ) {}
 
   async askAI(message: string): Promise<string> {
-    const result = await this.ai.responses.create({
-      model: "openai/gpt-oss-20b",
-      input: `${SYSTEM_PROMPT}\n\nUser: ${message}\nAI:`,
+    const response = await this.ai.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: message },
+      ],
     });
 
-    const answer = result.output_text?.trim() ?? "I'm sorry, I could not generate a response.";
+    const answer =
+      response.choices[0]?.message?.content?.trim() ??
+      "I'm sorry, I could not generate a response.";
 
     await this.chatRepo.saveChat("demo-user", message, answer);
 
