@@ -1,79 +1,88 @@
 import { useState, useRef, useEffect } from 'react';
 import type { ChatMessage } from './types/chat';
 import { sendChatMessage } from './services/api';
-import { Header } from './components/Header';
-import { LandingView } from './components/LandingView';
 import { ChatInput } from './components/ChatInput';
 import { ChatMessageItem } from './components/ChatMessage';
-import { AlertTriangle, X } from 'lucide-react';
+import { X, AlertTriangle, Plus } from 'lucide-react';
 import './App.css';
 
 export default function App() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [messages, setMessages]     = useState<ChatMessage[]>([]);
+  const [isLoading, setIsLoading]   = useState(false);
+  const [errorMessage, setError]    = useState<string | null>(null);
+  const [kbHeight, setKbHeight]     = useState(0);   // keyboard offset in px
+  const bottomRef = useRef<HTMLDivElement>(null);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
+  /* ── Visual Viewport / keyboard detection ─────────────────────────────── */
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, isLoading]);
+    const vv = window.visualViewport;
+    if (!vv) return;
 
-  const handleSendMessage = async (promptText: string) => {
-    if (!promptText.trim() || isLoading) return;
-
-    setErrorMessage(null);
-
-    const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-    const userMsg: ChatMessage = {
-      id: `user-${Date.now()}`,
-      sender: 'user',
-      text: promptText,
-      timestamp: timeString,
-      status: 'sent',
+    const onResize = () => {
+      // difference between layout height and visible viewport height = keyboard
+      const offset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      setKbHeight(offset);
     };
 
-    const loadingAiMsg: ChatMessage = {
+    vv.addEventListener('resize', onResize);
+    vv.addEventListener('scroll', onResize);
+    return () => {
+      vv.removeEventListener('resize', onResize);
+      vv.removeEventListener('scroll', onResize);
+    };
+  }, []);
+
+  /* ── Scroll to bottom when messages change ────────────────────────────── */
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  /* ── Send message ─────────────────────────────────────────────────────── */
+  const handleSend = async (promptText: string) => {
+    if (!promptText.trim() || isLoading) return;
+    setError(null);
+
+    const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    const userMsg: ChatMessage = {
+      id: `u-${Date.now()}`,
+      sender: 'user',
+      text: promptText,
+      timestamp: ts,
+      status: 'sent',
+    };
+    const loadingMsg: ChatMessage = {
       id: `ai-loading-${Date.now()}`,
       sender: 'ai',
       text: '',
-      timestamp: timeString,
+      timestamp: ts,
       status: 'sending',
     };
 
-    setMessages((prev) => [...prev, userMsg, loadingAiMsg]);
+    setMessages(prev => [...prev, userMsg, loadingMsg]);
     setIsLoading(true);
 
     try {
       const reply = await sendChatMessage(promptText);
-
-      const finalAiMsg: ChatMessage = {
+      const aiMsg: ChatMessage = {
         id: `ai-${Date.now()}`,
         sender: 'ai',
         text: reply,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         status: 'sent',
       };
-
-      setMessages((prev) => prev.map((msg) => (msg.id === loadingAiMsg.id ? finalAiMsg : msg)));
+      setMessages(prev => prev.map(m => m.id === loadingMsg.id ? aiMsg : m));
     } catch (err: any) {
-      const errorText = err.message || 'Failed to reach AI service.';
-      setErrorMessage(errorText);
-
-      const errorAiMsg: ChatMessage = {
-        id: `ai-error-${Date.now()}`,
+      const msg = err.message || 'Failed to reach AI service.';
+      setError(msg);
+      const errMsg: ChatMessage = {
+        id: `ai-err-${Date.now()}`,
         sender: 'ai',
-        text: `Error: ${errorText}`,
+        text: `Error: ${msg}`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         status: 'error',
       };
-
-      setMessages((prev) => prev.map((msg) => (msg.id === loadingAiMsg.id ? errorAiMsg : msg)));
+      setMessages(prev => prev.map(m => m.id === loadingMsg.id ? errMsg : m));
     } finally {
       setIsLoading(false);
     }
@@ -81,53 +90,71 @@ export default function App() {
 
   const handleNewChat = () => {
     setMessages([]);
-    setErrorMessage(null);
-  };
-
-  const handleDismissError = () => {
-    setErrorMessage(null);
+    setError(null);
   };
 
   return (
-    <div className="app-container">
-      <Header onNewChat={handleNewChat} hasMessages={messages.length > 0} />
+    /*
+     * paddingBottom pushes the whole app up by the exact keyboard height.
+     * This keeps the input visible above the keyboard on every mobile browser.
+     */
+    <div className="app" style={{ paddingBottom: kbHeight }}>
 
+      {/* Brand — fixed top-left */}
+      <div className="brand">Psuedo Ai</div>
+
+      {/* New chat — fixed top-right */}
+      <button className="new-chat-btn" onClick={handleNewChat}>
+        <Plus size={14} />
+        <span>New Chat</span>
+      </button>
+
+      {/* Error toast */}
       {errorMessage && (
         <div className="error-toast">
-          <div className="error-toast-content">
-            <AlertTriangle size={18} className="error-toast-icon" />
-            <span>{errorMessage}</span>
-          </div>
-          <button className="error-toast-close" onClick={handleDismissError}>
-            <X size={16} />
+          <AlertTriangle size={15} />
+          <span style={{ flex: 1 }}>{errorMessage}</span>
+          <button onClick={() => setError(null)}>
+            <X size={14} />
           </button>
         </div>
       )}
 
-      <main className="main-content">
+      {/* Middle — scrollable content */}
+      <div className="middle">
         {messages.length === 0 ? (
-          <LandingView onSelectSuggestion={handleSendMessage}>
-            <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} />
-          </LandingView>
-        ) : (
-          <div className="chat-flow-container">
-            <div className="messages-list">
-              {messages.map((msg) => (
-                <ChatMessageItem 
-                  key={msg.id} 
-                  message={msg} 
-                  onRetry={handleSendMessage}
-                />
-              ))}
-              <div ref={messagesEndRef} />
-            </div>
-
-            <div className="sticky-input-wrapper">
-              <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} />
+          <div className="landing">
+            <h1 className="landing-title">What can I help with?</h1>
+            <p className="landing-desc">
+              I know <strong>programming</strong> (Python, JS, Java, C++ and more),{' '}
+              <strong>web dev</strong>, <strong>databases</strong>, <strong>DSA</strong>,{' '}
+              <strong>OS &amp; networking</strong>, <strong>ML / AI</strong>,{' '}
+              <strong>cybersecurity</strong>, <strong>cloud</strong>, and{' '}
+              <strong>math &amp; stats</strong>.
+            </p>
+            <div className="landing-chips">
+              <span className="chip">Code &amp; debug</span>
+              <span className="chip">Explain concepts</span>
+              <span className="chip">Design patterns</span>
+              <span className="chip">Study help</span>
+              <span className="chip">Best practices</span>
+              <span className="chip">Career advice</span>
             </div>
           </div>
+        ) : (
+          <div className="messages-inner">
+            {messages.map(msg => (
+              <ChatMessageItem key={msg.id} message={msg} onRetry={handleSend} />
+            ))}
+            <div ref={bottomRef} />
+          </div>
         )}
-      </main>
+      </div>
+
+      {/* Input — always at bottom, centered */}
+      <div className="input-area">
+        <ChatInput onSendMessage={handleSend} isLoading={isLoading} />
+      </div>
     </div>
   );
 }
