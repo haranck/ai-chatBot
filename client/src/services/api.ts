@@ -46,7 +46,7 @@ export const sendChatMessage = async (prompt: string): Promise<string> => {
         const serverError = error.response.data?.error || error.response.data?.message;
         throw new Error(serverError || `Server error (${error.response.status})`);
       } else if (error.request) {
-        throw new Error('Unable to connect to backend server. Please make sure the backend is running on http://localhost:5000');
+        throw new Error('Unable to connect to the AI service. Please try again.');
       }
     }
     throw new Error(error.message || 'An unexpected error occurred while sending your message.');
