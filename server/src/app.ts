@@ -5,11 +5,10 @@ import aiRoute from './routes/ai.routes'
 const app = express();
 
 app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, Postman)
-    // and any origin — adjust to a whitelist if you want stricter control
-    callback(null, true);
-  },
+  origin: [
+    "https://ai-chat-bot-three-neon.vercel.app",
+    "http://localhost:5173",
+  ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
