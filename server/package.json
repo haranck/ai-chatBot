@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon --watch src --exec ts-node src/server.ts",
-    "build": "npm install && rm -rf dist && tsc",
+    "build": "npm install && rm -rf dist && npx tsc",
     "start": "node dist/server.js"
   },
   "keywords": [],
