@@ -17,7 +17,7 @@ export class AIService implements IAIService {
         { role: "user", content: message },
       ],
     });
-    console.log("hello")
+    
     const answer =
       response.choices[0]?.message?.content?.trim() ??
       "I'm sorry, I could not generate a response.";
