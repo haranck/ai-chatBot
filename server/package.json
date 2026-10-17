@@ -8,6 +8,9 @@
     "build": "npm install && rm -rf dist && npx tsc",
     "start": "node dist/server.js"
   },
+  "engines": {
+    "node": ">=22"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
