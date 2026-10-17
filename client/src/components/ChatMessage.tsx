@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import ReactMarkdown from 'react-markdown';
+import type { Components } from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import type { ChatMessage as ChatMessageType } from '../types/chat';
 import { Copy, Check, AlertCircle } from 'lucide-react';
 
 interface Props {
   message: ChatMessageType;
-  onRetry?: (text: string) => void;
+  onRetry?: (message: ChatMessageType) => void;
 }
 
 // ── VSCode-style code block ───────────────────────────────────────────────────
@@ -55,96 +58,67 @@ const CodeBlock: React.FC<{ lang: string; code: string }> = ({ lang, code }) => 
   );
 };
 
-// ── Inline renderer (bold, inline-code) ──────────────────────────────────────
-function renderInline(text: string): React.ReactNode {
-  const tokens = text.split(/(`[^`]+`|\*\*[^*]+\*\*)/g);
-  return tokens.map((tok, i) => {
-    if (tok.startsWith('`') && tok.endsWith('`') && tok.length > 2)
-      return <code key={i}>{tok.slice(1, -1)}</code>;
-    if (tok.startsWith('**') && tok.endsWith('**') && tok.length > 4)
-      return <strong key={i}>{tok.slice(2, -2)}</strong>;
-    return tok;
-  });
+// ── Markdown rendering (GFM: tables, quotes, links, task lists…) ─────────────
+
+// Flatten rendered children back to plain text (used for code blocks)
+function textOf(node: React.ReactNode): string {
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(textOf).join('');
+  if (React.isValidElement<{ children?: React.ReactNode }>(node)) return textOf(node.props.children);
+  return '';
 }
 
-// ── Full AI markdown-like renderer ───────────────────────────────────────────
-const AiBody: React.FC<{ text: string }> = ({ text }) => {
-  // Split on fenced code blocks: ```lang\n...\n```
-  const segments = text.split(/(```[\w]*\n[\s\S]*?```)/g);
+// The model often writes <br> inside table cells. Raw HTML is otherwise shown
+// as plain text (safe), so turn only those tags into real line breaks.
+type HastNode = { type: string; value?: string; children?: HastNode[] } & Record<string, unknown>;
 
-  return (
-    <div className="ai-body">
-      {segments.map((seg, si) => {
-        const codeMatch = seg.match(/^```([\w]*)\n([\s\S]*)```$/);
-        if (codeMatch) {
-          return (
-            <CodeBlock
-              key={si}
-              lang={codeMatch[1].trim()}
-              code={codeMatch[2].trimEnd()}
-            />
-          );
-        }
+function rehypeBrTags() {
+  const walk = (node: HastNode) => {
+    node.children?.forEach((child, i, siblings) => {
+      if (child.type === 'raw' && /^<br\s*\/?>$/i.test(child.value?.trim() ?? '')) {
+        siblings[i] = { type: 'element', tagName: 'br', properties: {}, children: [] };
+      } else {
+        walk(child);
+      }
+    });
+  };
+  return walk;
+}
 
-        // Render text lines
-        const lines = seg.split('\n');
-        const elements: React.ReactNode[] = [];
-        let listItems: React.ReactNode[] = [];
-        let listType: 'ul' | 'ol' | null = null;
-
-        const flushList = (idx: number) => {
-          if (listItems.length > 0) {
-            if (listType === 'ol') {
-              elements.push(<ol key={`list-${idx}`}>{listItems}</ol>);
-            } else {
-              elements.push(<ul key={`list-${idx}`}>{listItems}</ul>);
-            }
-            listItems = [];
-            listType = null;
-          }
-        };
-
-        lines.forEach((line, li) => {
-          const h1 = line.match(/^# (.+)/);
-          const h2 = line.match(/^## (.+)/);
-          const h3 = line.match(/^### (.+)/);
-          const ul = line.match(/^[\-\*] (.+)/);
-          const ol = line.match(/^(\d+)\. (.+)/);
-
-          if (h1) { flushList(li); elements.push(<h1 key={li}>{renderInline(h1[1])}</h1>); return; }
-          if (h2) { flushList(li); elements.push(<h2 key={li}>{renderInline(h2[1])}</h2>); return; }
-          if (h3) { flushList(li); elements.push(<h3 key={li}>{renderInline(h3[1])}</h3>); return; }
-
-          if (ul) {
-            if (listType === 'ol') flushList(li);
-            listType = 'ul';
-            listItems.push(<li key={li}>{renderInline(ul[1])}</li>);
-            return;
-          }
-          if (ol) {
-            if (listType === 'ul') flushList(li);
-            listType = 'ol';
-            listItems.push(<li key={li}>{renderInline(ol[2])}</li>);
-            return;
-          }
-
-          flushList(li);
-
-          if (line.trim() === '') {
-            // skip leading blanks
-            if (elements.length > 0) elements.push(<br key={li} />);
-            return;
-          }
-
-          elements.push(<p key={li}>{renderInline(line)}</p>);
-        });
-
-        flushList(lines.length);
-        return <React.Fragment key={si}>{elements}</React.Fragment>;
-      })}
+const markdownComponents: Components = {
+  // Fenced code → VSCode-style block with copy button
+  pre: ({ children }) => {
+    const codeEl = React.Children.toArray(children)[0];
+    const className = React.isValidElement<{ className?: string }>(codeEl)
+      ? codeEl.props.className ?? ''
+      : '';
+    const lang = /language-(\S+)/.exec(className)?.[1] ?? '';
+    return <CodeBlock lang={lang} code={textOf(children).replace(/\n$/, '')} />;
+  },
+  // Wide tables scroll sideways instead of breaking the layout
+  table: ({ children }) => (
+    <div className="table-wrap">
+      <table>{children}</table>
     </div>
-  );
+  ),
+  a: ({ href, title, children }) => (
+    <a href={href} title={title} target="_blank" rel="noopener noreferrer">
+      {children}
+    </a>
+  ),
 };
+
+const AiBody: React.FC<{ text: string }> = ({ text }) => (
+  <div className="ai-body">
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      rehypePlugins={[rehypeBrTags]}
+      components={markdownComponents}
+    >
+      {text}
+    </ReactMarkdown>
+  </div>
+);
 
 // ── Main message item ─────────────────────────────────────────────────────────
 export const ChatMessageItem: React.FC<Props> = ({ message, onRetry }) => {
@@ -187,8 +161,8 @@ export const ChatMessageItem: React.FC<Props> = ({ message, onRetry }) => {
               <span>{copied ? 'Copied' : 'Copy'}</span>
             </button>
           )}
-          {isError && onRetry && (
-            <button className="action-btn" onClick={() => onRetry(message.text)}>
+          {isError && onRetry && message.retryPrompt && (
+            <button className="action-btn" onClick={() => onRetry(message)}>
               <AlertCircle size={12} />
               <span>Retry</span>
             </button>

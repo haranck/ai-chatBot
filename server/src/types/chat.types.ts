@@ -1,8 +1,21 @@
-export interface ChatRequest {
-    message: string;
+export type MessageRole = "user" | "assistant";
+
+export interface ConversationDTO {
+  id: string;
+  title: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-export interface ChatResponse {
-    success: boolean;
-    reply: string;
+export interface MessageDTO {
+  id: string;
+  role: MessageRole;
+  content: string;
+  createdAt: Date;
+}
+
+export interface ChatResult {
+  conversationId: string;
+  title: string;
+  reply: string;
 }
