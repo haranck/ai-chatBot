@@ -13,7 +13,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [status, setStatus] = useState<AuthStatus>('loading');
 
-  useEffect(() => {
+  useEffect(() => { 
     let active = true;
 
     setSessionExpiredHandler(() => {
