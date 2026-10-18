@@ -7,9 +7,13 @@ import type {
 } from '../types/chat';
 
 // Production builds fall back to the deployed Render API if the env var isn't set
-const API_BASE_URL =
+const rawApiUrl: string =
   import.meta.env.VITE_API_BASE_URL ||
   (import.meta.env.PROD ? 'https://ai-chatbot-gbzb.onrender.com/api' : 'http://localhost:3000/api');
+
+// Accept the env value with or without a trailing "/" or "/api"
+const trimmedApiUrl = rawApiUrl.trim().replace(/\/+$/, '');
+const API_BASE_URL = trimmedApiUrl.endsWith('/api') ? trimmedApiUrl : `${trimmedApiUrl}/api`;
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
