@@ -34,13 +34,21 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   }
 
   if (err instanceof OpenAI.APIError) {
-    console.error("AI provider error:", err.status, err.message);
+    const unreachable = err instanceof OpenAI.APIConnectionError;
+    console.error(
+      "AI provider error:",
+      err.status ?? "no response",
+      err.message,
+      unreachable ? `(${(err as { cause?: Error }).cause?.message})` : "",
+    );
     const busy = err.status === 429;
     res.status(busy ? 429 : 502).json({
       success: false,
       error: busy
         ? rateLimitMessage(err.message)
-        : "The AI service is having trouble right now. Please try again.",
+        : unreachable
+          ? "Could not reach the AI service. Check your internet connection and try again."
+          : "The AI service is having trouble right now. Please try again.",
     });
     return;
   }

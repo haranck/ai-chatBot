@@ -14,6 +14,8 @@ const HISTORY_MAX_CHARS = 12_000;
 
 const MODELS = [AI_MODEL, ...FALLBACK_MODELS];
 
+const CONNECTION_RETRIES = 2;
+
 function makeTitle(message: string): string {
   const firstLine = message.split("\n").find((line) => line.trim()) ?? message;
   const clean = firstLine.replace(/\s+/g, " ").trim();
@@ -82,7 +84,7 @@ export class AIService implements IAIService {
   private async complete(messages: OpenAI.ChatCompletionMessageParam[]) {
     for (const [i, model] of MODELS.entries()) {
       try {
-        return await this.ai.chat.completions.create({
+        return await this.create({
           model,
           messages,
           // less hidden "thinking" = faster answers and fewer tokens used
@@ -98,5 +100,22 @@ export class AIService implements IAIService {
       }
     }
     throw new Error("No AI model configured");
+  }
+
+  // Brief network drops ("Connection error") usually work on a second try.
+  // maxRetries is 0 in config/ai.ts, so the SDK won't retry these by itself.
+  private async create(params: OpenAI.ChatCompletionCreateParamsNonStreaming) {
+    for (let attempt = 1; ; attempt++) {
+      try {
+        return await this.ai.chat.completions.create(params);
+      } catch (err) {
+        const dropped =
+          err instanceof OpenAI.APIConnectionError &&
+          !(err instanceof OpenAI.APIConnectionTimeoutError);
+        if (!dropped || attempt > CONNECTION_RETRIES) throw err;
+        console.warn(`Could not reach Groq (${(err as { cause?: Error }).cause?.message}), retrying...`);
+        await new Promise((resolve) => setTimeout(resolve, 300 * attempt));
+      }
+    }
   }
 }
