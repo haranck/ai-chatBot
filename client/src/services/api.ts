@@ -6,7 +6,10 @@ import type {
   StoredMessage,
 } from '../types/chat';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+// Production builds fall back to the deployed Render API if the env var isn't set
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.PROD ? 'https://ai-chatbot-gbzb.onrender.com/api' : 'http://localhost:3000/api');
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

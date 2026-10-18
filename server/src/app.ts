@@ -14,7 +14,7 @@ const app = express();
 app.set("trust proxy", 1);
 
 const allowedOrigins = [
-  "https://ai-chat-bot-three-neon.vercel.app",
+  "https://ai-chat-bot-t3ln.vercel.app",
   "http://localhost:5173",
   // optional extra origins, comma-separated (e.g. a new deploy URL)
   ...(process.env.CLIENT_ORIGINS ?? "").split(",").map((o) => o.trim()).filter(Boolean),
