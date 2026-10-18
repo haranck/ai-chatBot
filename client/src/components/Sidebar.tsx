@@ -55,7 +55,7 @@ export function Sidebar({
     <>
       <aside className={`sidebar ${open ? 'open' : ''}`} aria-label="Chat history">
         <div className="sidebar-head">
-          <span className="sidebar-brand">Psuedo Ai</span>
+          <span className="sidebar-brand">Pseudo AI</span>
           <button className="icon-btn sidebar-close" onClick={onClose} aria-label="Close sidebar">
             <X size={18} />
           </button>

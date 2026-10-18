@@ -136,7 +136,7 @@ export const ChatMessageItem: React.FC<Props> = ({ message, onRetry }) => {
 
   return (
     <div className={`msg-row ${isUser ? 'user' : 'ai'}`}>
-      <div className="msg-label">{isUser ? 'You' : 'Psuedo Ai'}</div>
+      <div className="msg-label">{isUser ? 'You' : 'Pseudo AI'}</div>
 
       <div className={`bubble ${isUser ? 'user' : 'ai'} ${isError ? 'error-bubble' : ''}`}>
         {isSending ? (

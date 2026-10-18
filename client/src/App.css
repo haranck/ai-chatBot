@@ -257,24 +257,27 @@
   box-shadow: 0 20px 60px rgba(0,0,0,0.5);
 }
 
-.login-logo {
-  width: 52px;
-  height: 52px;
-  margin-bottom: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #5c5fef, #8b5cf6);
-  color: #fff;
-  box-shadow: 0 8px 24px rgba(92,95,239,0.35);
+.login-eyebrow {
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.45);
 }
 
-.login-title {
-  font-size: 1.45rem;
-  font-weight: 700;
+.login-wordmark {
+  margin-top: 4px;
+  font-size: 2.4rem;
+  font-weight: 800;
+  line-height: 1.1;
   color: #fff;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
+}
+.login-wordmark span {
+  background: linear-gradient(135deg, #5c5fef, #8b5cf6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .login-subtitle {

@@ -260,7 +260,7 @@ export function ChatPage({ user }: { user: User }) {
           <button className="icon-btn" onClick={() => setSidebarOpen(true)} aria-label="Open chat history">
             <Menu size={20} />
           </button>
-          <span className="topbar-title">{activeTitle ?? 'Psuedo Ai'}</span>
+          <span className="topbar-title">{activeTitle ?? 'Pseudo AI'}</span>
           <button className="icon-btn" onClick={startNewChat} aria-label="New chat">
             <SquarePen size={18} />
           </button>

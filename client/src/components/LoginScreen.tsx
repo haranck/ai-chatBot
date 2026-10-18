@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
-import { History, Loader2, MessageSquareText, ShieldCheck, Sparkles } from 'lucide-react';
+import { History, Loader2, MessageSquareText, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { getErrorMessage } from '../services/api';
 
@@ -27,10 +27,10 @@ export function LoginScreen() {
   return (
     <div className="login-page">
       <div className="login-card">
-        <div className="login-logo">
-          <Sparkles size={26} />
-        </div>
-        <h1 className="login-title">Welcome to Psuedo Ai</h1>
+        <p className="login-eyebrow">Welcome to</p>
+        <h1 className="login-wordmark">
+          Pseudo <span>AI</span>
+        </h1>
         <p className="login-subtitle">
           Sign in to start chatting. Your conversations are saved, so you can pick up where you
           left off on any device.

@@ -10,7 +10,7 @@ interface Props {
 export const ChatInput: React.FC<Props> = ({
   onSendMessage,
   isLoading,
-  placeholder = 'Message Psuedo Ai...',
+  placeholder = 'Message Pseudo AI...',
 }) => {
   const [text, setText] = useState('');
   const ref = useRef<HTMLTextAreaElement>(null);
